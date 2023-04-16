@@ -128,3 +128,25 @@ func User(c *fiber.Ctx) error {
 
 	return c.JSON(user)
 }
+
+func FindUser(c *fiber.Ctx) error {
+	var data map[string]string
+
+	if err := c.BodyParser(&data); err != nil {
+		return err
+	}
+
+	var user models.User
+
+	database.DB.Where("username = ?", data["username"]).First(&user)
+
+	//if email not found return error
+	if user.Id == 0 {
+		c.Status(fiber.StatusNotFound)
+		return c.JSON(fiber.Map{
+			"message": "user not found",
+		})
+	}
+
+	return c.JSON(user.Username)
+}
