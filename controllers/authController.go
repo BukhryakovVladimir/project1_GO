@@ -1,6 +1,11 @@
 package controllers
 
 import (
+	"encoding/base64"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -29,9 +34,51 @@ func Register(c *fiber.Ctx) error {
 		Password_hash: string(password),
 	}
 
-	database.DB.Create(&user)
+	// fileToBeUploaded := "/home/kidala/Desktop/project1_GO/userImages/default_userimage.png"
+	// file, err := os.Open(fileToBeUploaded)
 
-	return c.JSON(user)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	os.Exit(1)
+	// }
+
+	// defer file.Close()
+
+	// fileInfo, _ := file.Stat()
+	// var size int64 = fileInfo.Size()
+	// bytes := make([]byte, size)
+
+	// // read file into bytes
+	// buffer := bufio.NewReader(file)
+	// _, err = buffer.Read(bytes)    // <--------------- here!
+
+	// // then we need to determine the file type
+	// // see https://www.socketloop.com/tutorials/golang-how-to-verify-uploaded-file-is-image-or-allowed-file-types
+
+	// filetype := http.DetectContentType(bytes)
+
+	// err = bucket.Put(path, bytes, filetype, s3.ACL("public-read"))
+
+	bytes, err := ioutil.ReadFile("/home/kidala/Desktop/project1_GO/userImages/default_userimage.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var base64Encoding string
+	base64Encoding += "data:image/png;base64,"
+	base64Encoding += base64.StdEncoding.EncodeToString(bytes)
+	mimeType := http.DetectContentType(bytes)
+	fmt.Println(mimeType)
+	channel := models.Channels{
+		Username:  data["username"],
+		Email:     data["email"],
+		Userimage: base64Encoding,
+	}
+
+	database.DB.Create(&user)
+	database.DB.Create(&channel)
+
+	return c.JSON(channel)
 }
 
 // create jwt
@@ -129,6 +176,7 @@ func User(c *fiber.Ctx) error {
 	return c.JSON(user)
 }
 
+// find whether channel exists from url
 func FindUser(c *fiber.Ctx) error {
 	var data map[string]string
 
@@ -149,4 +197,27 @@ func FindUser(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(user.Username)
+}
+
+// get id, username and email
+func UserImage_topright(c *fiber.Ctx) error {
+	cookie := c.Cookies("jwt")
+	token, err := jwt.ParseWithClaims(cookie, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(SecretKey), nil
+	})
+
+	if err != nil {
+		c.Status(fiber.StatusUnauthorized)
+		return c.JSON(fiber.Map{
+			"message": "unauthenticated",
+		})
+	}
+
+	claims := token.Claims.(*jwt.RegisteredClaims)
+
+	var userimg models.Channels
+
+	database.DB.Where("id = ?", claims.Issuer).First(&userimg)
+
+	return c.JSON(userimg.Userimage)
 }
