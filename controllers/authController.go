@@ -199,7 +199,7 @@ func FindUser(c *fiber.Ctx) error {
 	return c.JSON(user.Username)
 }
 
-// get id, username and email
+// update user's pfp in top right corner(only seen by one user ofc)
 func UserImage_topright(c *fiber.Ctx) error {
 	cookie := c.Cookies("jwt")
 	token, err := jwt.ParseWithClaims(cookie, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
@@ -220,4 +220,32 @@ func UserImage_topright(c *fiber.Ctx) error {
 	database.DB.Where("id = ?", claims.Issuer).First(&userimg)
 
 	return c.JSON(userimg.Userimage)
+}
+
+// change user image
+func ChangeUserimg(c *fiber.Ctx) error {
+	var data map[string]string
+
+	if err := c.BodyParser(&data); err != nil {
+		return err
+	}
+
+	cookie := c.Cookies("jwt")
+	token, err := jwt.ParseWithClaims(cookie, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(SecretKey), nil
+	})
+
+	if err != nil {
+		c.Status(fiber.StatusUnauthorized)
+		return c.JSON(fiber.Map{
+			"message": "unauthenticated",
+		})
+	}
+
+	claims := token.Claims.(*jwt.RegisteredClaims)
+
+	var channel models.Channels
+	database.DB.Where("id = ?", claims.Issuer).First(&channel).Update("Userimage", data["userimg"])
+	return c.JSON(channel)
+
 }

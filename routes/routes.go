@@ -12,4 +12,5 @@ func Setup(app *fiber.App) {
 	app.Get("/api/user", controllers.User)
 	app.Post("/api/finduser", controllers.FindUser)
 	app.Get("/api/userimageTopright", controllers.UserImage_topright)
+	app.Post("/api/changeuserimg", controllers.ChangeUserimg)
 }
