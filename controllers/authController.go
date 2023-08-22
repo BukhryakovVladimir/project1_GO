@@ -2,10 +2,8 @@ package controllers
 
 import (
 	"encoding/base64"
-	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -67,8 +65,8 @@ func Register(c *fiber.Ctx) error {
 	var base64Encoding string
 	base64Encoding += "data:image/png;base64,"
 	base64Encoding += base64.StdEncoding.EncodeToString(bytes)
-	mimeType := http.DetectContentType(bytes)
-	fmt.Println(mimeType)
+	// mimeType := http.DetectContentType(bytes)
+	// fmt.Println(mimeType)
 	channel := models.Channels{
 		Username:  data["username"],
 		Email:     data["email"],
@@ -190,13 +188,35 @@ func FindUser(c *fiber.Ctx) error {
 
 	//if email not found return error
 	if user.Id == 0 {
-		c.Status(fiber.StatusNotFound)
+		// c.Status(fiber.StatusNotFound)
 		return c.JSON(fiber.Map{
 			"message": "user not found",
 		})
 	}
 
 	return c.JSON(user.Username)
+}
+
+func FindEmail(c *fiber.Ctx) error {
+	var data map[string]string
+
+	if err := c.BodyParser(&data); err != nil {
+		return err
+	}
+
+	var user models.User
+
+	database.DB.Where("email = ?", data["email"]).First(&user)
+
+	//if email not found return error
+	if user.Id == 0 {
+		// c.Status(fiber.StatusNotFound)
+		return c.JSON(fiber.Map{
+			"message": "email not found",
+		})
+	}
+
+	return c.JSON(user.Email)
 }
 
 // update user's pfp in top right corner(only seen by one user ofc)
